@@ -1,0 +1,38 @@
+version: '3.8'
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: marathon_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: marathon
+    ports:
+      - '5432:5432'
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: marathon_api
+    environment:
+      - PORT=4000
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/marathon
+    ports:
+      - '4000:4000'
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: sh -c "npm run dev"
+
+volumes:
+  db_data:
